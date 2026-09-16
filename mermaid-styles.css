@@ -1,0 +1,18 @@
+/* ===========================================
+   AFP PlanVital Brand Styles for Mermaid
+   =========================================== */
+
+/* PlanVital Color Palette
+   Primary Red:    #C21B17
+   Secondary Red:  #AA1B17
+   Dark Gray:      #343434
+   =========================================== */
+
+/* Font family - using system fonts for offline reliability */
+text, .label, .nodeLabel, .edgeLabel {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.cluster-label {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}

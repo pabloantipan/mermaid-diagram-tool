@@ -1,0 +1,205 @@
+/* ===========================================
+   Business flow style — "flow"
+   Use with: mermaid2svg <file> --style flow
+   Pairs with mermaid-config-flow.json
+   ===========================================
+
+   ORDER OF WORK (the thing that decides whether a chart takes
+   20 minutes or 4 hours): agree the AS-IS -> one chart, not two
+   -> model pass -> render+check -> read the checker as a MODELLING
+   report -> search declaration order -> connectors -> legend last.
+   Never touch nodeSpacing/padding/aspect ratio before the last two
+   steps. Score ink coverage, not aspect ratio.
+
+   Full workflow + rationale: the `mermaid-flowcharts` skill
+   (~/.claude/skills/mermaid-flowcharts/SKILL.md). Keep the two
+   in sync; this header is the short version.
+
+   Intent: the process-map look used for business-facing
+   flow charts — navy on light blue, rounded boxes,
+   curved runs, red for interruptions.
+
+   Edge routing is set in mermaid-config-flow.json via
+   flowchart.curve = "step": every link is horizontal and
+   vertical segments only, cornering at the midpoint.
+   ("stepBefore"/"stepAfter" corner at one end instead, which
+   drives long verticals through neighbouring edge labels.)
+
+   TWO AUTHORING RULES, both learned the hard way:
+
+   1. Write dotted labelled edges as  A -.->|texto| B
+      NOT as                          A -.texto.-> B
+      The second form silently DROPS THE LAST CHARACTER of the
+      label ("método" renders and is saved as "métod"). The loss
+      is in the generated SVG, not just the render, and it only
+      bites labels past a certain width — so it hides in short
+      ones and surfaces later. Verified against mermaid-cli.
+
+   2. Never fan several edges from one decision node to the SAME
+      target with a label on each. Orthogonal routing makes those
+      runs collinear and their labels land in open space, unable
+      to be traced back to an edge. Collapse them into one edge
+      with a grouped label instead. This is the single biggest
+      cause of an unreadable "step" diagram.
+
+      The mirror image bites too: when ONE terminal is targeted
+      from both the top and the bottom of the chart, layout must
+      place it below every predecessor, so it sinks to the floor
+      and the upper edge stretches the full height. Usually the
+      graph is telling you the same condition is being tested in
+      two places — route the later path back through the earlier
+      test instead of duplicating its outcome.
+
+   3. Declare the MAIN/success branch of a decision FIRST. Layout
+      follows declaration order, so the happy path stays on the
+      spine and exception branches land to the right. Declaring
+      the exception first also makes the two edges cross, which
+      swaps where the labels appear to point — a reader then sees
+      "Sí" leading to the failure screen.
+
+   4. EVERY edge leaving a diamond must be an ANSWER to that
+      diamond's question. A third edge is almost always a second
+      condition wearing an edge label — and it is also what drags
+      a line diagonally across the whole chart, because its target
+      belongs at a different depth.
+
+      Wrong — "se agotaron los intentos" does not answer
+      "¿Es correcta?":
+
+          VAL{¿Es correcta?} -->|Sí| OK
+          VAL -->|No| MAL[...]
+          VAL -->|Se agotaron los intentos| BLOQUEADA   ← third outcome
+
+      Right — the budget gets its own decision:
+
+          VAL -->|No| MAL[...]
+          MAL --> QUEDAN{¿Le quedan intentos?}
+          QUEDAN -.->|reintenta| PIDE
+          QUEDAN -->|No| BLOQUEADA[...]
+
+      More than two edges is the smell, not the rule. A
+      CLASSIFICATION question legitimately has many answers
+      ("¿En qué estado está la clave?" → vigente / bloqueada /
+      no tiene). What breaks is a question phrased yes/no that
+      sprouts a third outcome — either rephrase it as a
+      classification, or give the extra condition its own node.
+
+   6. LONG RETURNS become CONNECTORS. A retry or escape that
+      jumps back several ranks is the usual unavoidable crossing.
+      Break it with a lettered circle at each end:
+
+          REINT      -.-|reintenta| CA1(("A"))
+          CA2(("A")) -.-> CUPO
+
+      Edges INTO a connector use "-.-", NOT "-.->": the arrowhead
+      is drawn at the node's original radius and ends up hidden
+      behind the enlarged disc, leaving a nub. And the circle needs
+      the explicit radius set at the bottom of this file — one
+      letter otherwise yields r~8 and the glyph touches the rim.
+
+   7. linkStyle takes an EDGE INDEX (0-based, declaration order).
+      Inserting an edge above a styled one shifts it silently.
+      When counting them by script, anchor on the "flowchart TD"
+      line: this frontmatter contains "flowchart:", so splitting on
+      "flowchart" counts the closing --- as an edge.
+
+   5. "step" suits a WIDE, SHALLOW chart (an LR spine). On a dense
+      TD decision tree it fails: long runs share a coordinate, so
+      an edge can pass straight through an unrelated node and a
+      label can sit on a line it does not belong to. Those charts
+      should opt out per diagram, which overrides this config:
+
+          ```mermaid
+          ---
+          config:
+            flowchart:
+              curve: linear
+          ---
+          flowchart TD
+          ```
+
+      "linear" keeps segments straight but diagonal, so edges are
+      never collinear. Use it whenever a chart is taller than wide.
+
+   Palette
+     Navy (line + border + text)   #1F3864
+     Screen fill                   #EEF2F9
+     Terminal fill                 #DBE2EF
+     Interruption stroke           #C00000
+     Interruption fill             #FDECEF
+   =========================================== */
+
+text,
+.label,
+.nodeLabel,
+.edgeLabel,
+.cluster-label {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* --- Nodes ------------------------------------------------
+   Rounded corners live here rather than in the diagram source,
+   so a plain [square bracket] node still comes out on-style and
+   the .mermaid stays readable as prose. */
+.node rect,
+.node polygon,
+.node circle,
+.node ellipse,
+.node path {
+  rx: 6;
+  ry: 6;
+  stroke-width: 1.4px;
+}
+
+.nodeLabel {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* --- Edges ------------------------------------------------ */
+.flowchart-link,
+.edgePath .path {
+  stroke-width: 1.3px;
+}
+
+.edge-pattern-dashed {
+  stroke-dasharray: 6 4 !important;
+}
+
+/* Edge labels sit ON the lines. Without an opaque plate behind
+   them the text and the link render on top of each other — the
+   overlap this stylesheet exists to fix. */
+.edgeLabel {
+  font-size: 12px;
+  fill: #1F3864;
+  color: #1F3864;
+}
+
+.edgeLabel rect,
+.edgeLabel .label-container,
+.edgeLabels .label rect {
+  fill: #FFFFFF !important;
+  opacity: 1 !important;
+}
+
+/* --- Subgraphs -------------------------------------------- */
+.cluster rect {
+  rx: 8;
+  ry: 8;
+  stroke-dasharray: 4 3;
+}
+
+.cluster-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* --- Conectores -------------------------------------------
+   Un círculo ((A)) se dimensiona a partir de su etiqueta, y una
+   sola letra da un radio de ~8px: la letra toca la circunferencia
+   y la punta de flecha entrante la tapa. Se fija un radio legible.
+   Sube el radio SIN inflar los demás nodos, que es lo que pasaría
+   subiendo flowchart.padding en la configuración. */
+.node circle.label-container {
+  r: 13;
+}

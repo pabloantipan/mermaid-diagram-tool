@@ -1,0 +1,13 @@
+# Python bytecode from mermaid-check.py
+__pycache__/
+*.pyc
+
+# Rendered output — regenerate with mermaid2svg / mermaid2pdf
+*.svg
+*.pdf
+*.png
+!planvital-logo.png
+
+# Editor and OS noise
+.DS_Store
+*.swp
