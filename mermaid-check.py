@@ -148,6 +148,13 @@ def points_box(el, ox, oy):
     return (ox + min(xs), oy + min(ys), ox + max(xs), oy + max(ys))
 
 
+def bare_id(i):
+    """Drop the per-diagram prefix newer mmdc writes on element ids
+    (my-svg-L_A_B_0, my-svg-flowchart-A-0), so edge ids match the labels'
+    data-id and node keys match the edge ids' endpoints."""
+    return re.sub(r"^[\w-]*?-(?=L_|flowchart-)", "", i or "")
+
+
 def collect(el, ox=0.0, oy=0.0, nodes=None, labels=None, edges=None):
     if nodes is None:
         nodes, labels, edges = [], [], []
@@ -158,7 +165,7 @@ def collect(el, ox=0.0, oy=0.0, nodes=None, labels=None, edges=None):
     if el.tag == SVG + "path" and "flowchart-link" in cls:
         pts = path_outline(el.get("d") or "", ox, oy)
         if pts:
-            edges.append((el.get("id") or el.get("data-id") or "", pts))
+            edges.append((bare_id(el.get("id") or el.get("data-id")), pts))
         return nodes, labels, edges
 
     if "node" in cls:
@@ -201,7 +208,7 @@ def collect(el, ox=0.0, oy=0.0, nodes=None, labels=None, edges=None):
         if boxes:
             box = (min(b[0] for b in boxes), min(b[1] for b in boxes),
                    max(b[2] for b in boxes), max(b[3] for b in boxes))
-            nodes.append((el.get("id") or "node", box, poly))
+            nodes.append((bare_id(el.get("id")) or "node", box, poly))
         return nodes, labels, edges
 
     if "edgeLabel" in cls:
@@ -209,7 +216,7 @@ def collect(el, ox=0.0, oy=0.0, nodes=None, labels=None, edges=None):
         edge_id = ""
         for g in el.iter(SVG + "g"):
             if g.get("data-id"):
-                edge_id = g.get("data-id")
+                edge_id = bare_id(g.get("data-id"))
                 break
         for child in el.iter(SVG + "rect"):
             if "background" in classes(child):
