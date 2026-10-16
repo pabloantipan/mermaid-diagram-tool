@@ -1,0 +1,26 @@
+/* dark — Deltagos's dark theme (organizer docs/ux/specs/diagrams-in-app.md §1,
+   Aglaea, 2026-10-15). The figure is transparent on the panel --surface #201b2b;
+   rgba tokens are pre-blended onto that ground, since the SVG cannot read the
+   app's CSS variables. The source keeps the mermaid-flowcharts skill's light
+   classDef lines, so the same block renders light anywhere else. Glyphs (➕ ✎ ✕) live in the labels and carry the meaning in
+   both themes. removed is not red: red is reserved for blocked and errors. */
+
+/* unclassed: --surface-raised fill, --border-strong stroke, --fg label */
+.node rect, .node polygon, .node circle, .node ellipse, .node path {
+  fill: #272033; stroke: #44404d; stroke-width: 1px;
+}
+.node .nodeLabel, .node text, .node tspan { fill: #eeebf4; color: #eeebf4; }
+
+/* edges: --fg-subtle; labels --fg-muted on the panel */
+.edgePath .path, .flowchart-link { stroke: #958ea2 !important; }
+.arrowheadPath, marker path { fill: #958ea2 !important; stroke: #958ea2 !important; }
+.edgeLabel, .edgeLabel text, .edgeLabel tspan { fill: #b5afc3; color: #b5afc3; }
+.edgeLabels .label rect, .edgeLabel rect { fill: #201b2b !important; opacity: 1; }
+
+/* clusters */
+.cluster rect { fill: #201b2b !important; stroke: #44404d !important; }
+.cluster-label text, .cluster-label tspan { fill: #b5afc3 !important; }
+
+/* The change classes (added, changed, removed, context) are restyled by
+   classdefs-dark.mmd, appended to each diagram by mermaid2svg --style dark:
+   a classDef outranks any stylesheet rule. */

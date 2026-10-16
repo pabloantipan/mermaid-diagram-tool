@@ -123,12 +123,37 @@ mermaid2svg() {
   # Allow local config override
   [[ -f "mermaid-config.json" ]] && config="mermaid-config.json"
 
+  # A style may restyle the change classes (added, changed, removed, context)
+  # with classdefs-<style>.mmd. mermaid writes a classDef as a rule scoped to
+  # the diagram's id, which no stylesheet outranks, so the style's classDef
+  # lines are appended to every diagram instead: a later classDef of the same
+  # class wins. The source keeps its light lines (dark: Deltagos, organizer
+  # docs/ux/specs/diagrams-in-app.md §1, 2026-10-15).
+  local render_input="$input" tmp_input=""
+  local styled_classdefs="${MERMAID_HOME}/classdefs-${style}.mmd"
+  if [[ -n "$style" ]] && [[ -f "$styled_classdefs" ]]; then
+    tmp_input=$(mktemp "${TMPDIR:-/tmp}/mermaid2svg.XXXXXX")
+    python3 - "$input" "$styled_classdefs" "$tmp_input" <<'PY'
+import re, sys
+src, defs, out = sys.argv[1], sys.argv[2], sys.argv[3]
+s, d = open(src).read(), open(defs).read().rstrip("\n") + "\n"
+if src.endswith((".md", ".markdown")):
+    s = re.sub(r"(```mermaid\n.*?)(^```)", lambda m: m.group(1) + d + m.group(2), s, flags=re.S | re.M)
+else:
+    s = s.rstrip("\n") + "\n" + d
+open(out, "w").write(s)
+PY
+    render_input="$tmp_input"
+    case "$input" in *.md|*.markdown) mv "$tmp_input" "$tmp_input.md"; tmp_input="$tmp_input.md"; render_input="$tmp_input" ;; esac
+  fi
+
   echo "Converting: $input → $output"
 
   # Generate SVG (timeout after 30s)
   local error_output
-  error_output=$("$mmdc_bin" -i "$input" -o "$output" -c "$config" -C "$css_file" 2>&1)
+  error_output=$("$mmdc_bin" -i "$render_input" -o "$output" -c "$config" -C "$css_file" 2>&1)
   local exit_code=$?
+  [[ -n "$tmp_input" ]] && rm -f "$tmp_input"
 
   # A Markdown input holding N diagrams does NOT produce "$output": mmdc writes
   # one file per diagram as <input>-1.svg … <input>-N.svg. Testing -f "$output"
